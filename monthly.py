@@ -82,9 +82,16 @@ if df.empty:
 
 today = pd.Timestamp.today().normalize()
 this_month = today.to_period("M").to_timestamp()
-report_month = (this_month - pd.DateOffset(months=1)).to_period("M").to_timestamp()
-prev_month = (report_month - pd.DateOffset(months=1)).to_period("M").to_timestamp()
 
+month_options = pd.date_range(end=this_month - pd.DateOffset(months=1), periods=12, freq="MS")
+report_month = st.sidebar.selectbox(
+    "Choose current month",
+    options=list(month_options),
+    format_func=lambda x: x.strftime("%B %Y"),
+    key="current_month_select",
+)
+
+prev_month = (report_month - pd.DateOffset(months=1)).to_period("M").to_timestamp()
 last_24_months = pd.date_range(end=report_month, periods=24, freq="MS")
 last_12_months = pd.date_range(end=report_month, periods=12, freq="MS")
 
