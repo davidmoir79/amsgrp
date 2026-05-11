@@ -56,7 +56,7 @@ def add_bar_labels(fig):
 
 st.title("AFRIMAT GROUP OIL SAMPLE DASHBOARD")
 
-uploaded_file = st.sidebar.file_uploader("Upload data_ams.csv", type=["csv"])
+uploaded_file = st.sidebar.file_uploader("Upload data_ams.csv", type=["csv"], label_visibility="collapsed")
 
 if uploaded_file is not None:
     df = load_data(uploaded_file)
@@ -89,10 +89,9 @@ last_total = len(prev_month_df)
 active_customers = sorted(active_customers_df["customer"].dropna().astype(str).unique())
 
 st.subheader("Monthly overview")
-m1, m2, m3 = st.columns(3)
+m1, m2 = st.columns(2)
 m1.metric(f"Current Month ({report_month.strftime('%B %Y')})", current_total)
 m2.metric(f"Last Month ({prev_month.strftime('%B %Y')})", last_total)
-m3.metric("Active Customers (last 12 months)", len(active_customers))
 
 st.subheader("All samples for last 24 months")
 all_24 = df[df["month"].isin(last_24_months)].copy()
@@ -135,9 +134,7 @@ fig_current.update_layout(xaxis_title="Customer", yaxis_title="Samples")
 st.plotly_chart(fig_current, use_container_width=True)
 
 st.subheader("Customers active in the last 12 months")
-customer_list = active_customers
-
-for customer in customer_list:
+for customer in active_customers:
     cust_current = current_month_df[current_month_df["customer"].astype(str) == customer].copy()
     cust_current = cust_current.sort_values("sampledate")
 
@@ -228,13 +225,14 @@ customer_24_monthly = (
     .sort_values("month")
 )
 
-fig_24 = px.bar(
+fig_24 = px.line(
     customer_24_monthly,
     x="month",
     y="samples",
+    markers=True,
     text="samples",
     title=f"{customer_choice} - samples per month (last 24 months)",
 )
-fig_24 = add_bar_labels(fig_24)
+fig_24.update_traces(textposition="top center")
 fig_24.update_layout(xaxis_title="Month", yaxis_title="Samples")
 st.plotly_chart(fig_24, use_container_width=True)
