@@ -53,11 +53,14 @@ if df.empty:
     st.stop()
 
 today = pd.Timestamp.today().normalize()
-current_month = today.to_period("M").to_timestamp()
-last_complete_month = (current_month - pd.DateOffset(months=1)).to_period("M").to_timestamp()
+this_month = today.to_period("M").to_timestamp()
+last_complete_month = (this_month - pd.DateOffset(months=1)).to_period("M").to_timestamp()
 
-current_month_df = df[df["month"] == current_month].copy()
-last_month_df = df[df["month"] == last_complete_month].copy()
+report_month = last_complete_month
+prev_month = (report_month - pd.DateOffset(months=1)).to_period("M").to_timestamp()
+
+current_month_df = df[df["month"] == report_month].copy()
+last_month_df = df[df["month"] == prev_month].copy()
 
 current_total = len(current_month_df)
 last_total = len(last_month_df)
@@ -67,9 +70,30 @@ c1, c2 = st.columns(2)
 c1.metric("Total Samples for Current Month", current_total)
 c2.metric("Total Samples for Last Month", last_total)
 
-st.subheader(f"Last month samples by customer: {last_complete_month.strftime('%B %Y')}")
+last_24_months = pd.date_range(end=report_month, periods=24, freq="MS")
+all_24 = df[df["month"].isin(last_24_months)].copy()
+
+st.subheader("All samples for last 24 months")
+all_monthly = (
+    all_24.groupby("month")
+    .size()
+    .reset_index(name="samples")
+    .sort_values("month")
+)
+
+fig_all = px.line(
+    all_monthly,
+    x="month",
+    y="samples",
+    markers=True,
+    title="All samples - last 24 months",
+)
+fig_all.update_layout(xaxis_title="Month", yaxis_title="Samples")
+st.plotly_chart(fig_all, use_container_width=True)
+
+st.subheader(f"Last month samples by customer: {report_month.strftime('%B %Y')}")
 last_month_counts = (
-    last_month_df.groupby("customer")
+    current_month_df.groupby("customer")
     .size()
     .reset_index(name="samples")
     .sort_values("samples", ascending=False)
@@ -85,23 +109,24 @@ fig_last_month.update_layout(xaxis_title="Customer", yaxis_title="Samples")
 st.plotly_chart(fig_last_month, use_container_width=True)
 
 st.subheader("Last month data per customer")
-customer_list = sorted(last_month_df["customer"].dropna().astype(str).unique())
+customer_list = sorted(current_month_df["customer"].dropna().astype(str).unique())
 
 for customer in customer_list:
-    cust_last = last_month_df[last_month_df["customer"].astype(str) == customer].copy()
+    cust_last = current_month_df[current_month_df["customer"].astype(str) == customer].copy()
     cust_last = cust_last.sort_values("sampledate")
 
-    cust_all_24 = df[df["customer"].astype(str) == customer].copy()
-    cust_all_24 = cust_all_24[cust_all_24["month"].isin(pd.date_range(end=current_month, periods=24, freq="MS"))]
+    cust_24 = all_24[all_24["customer"].astype(str) == customer].copy()
+    cust_24 = cust_24.sort_values("sampledate")
+
     cust_monthly_24 = (
-        cust_all_24.groupby("month")
+        cust_24.groupby("month")
         .size()
         .reset_index(name="samples")
         .sort_values("month")
     )
 
-    current_status = current_month_df[current_month_df["customer"].astype(str) == customer].copy()
-    last24_status = cust_all_24.copy()
+    status_current = cust_last.groupby("status").size().reset_index(name="count")
+    status_24 = cust_24.groupby("status").size().reset_index(name="count")
 
     with st.expander(customer, expanded=False):
         st.markdown(f"### {customer}")
@@ -120,7 +145,6 @@ for customer in customer_list:
             st.plotly_chart(fig_line, use_container_width=True)
 
         with c2:
-            status_current = current_status.groupby("status").size().reset_index(name="count")
             fig_current_status = px.pie(
                 status_current,
                 names="status",
@@ -151,7 +175,6 @@ for customer in customer_list:
             )
 
         with c4:
-            status_24 = last24_status.groupby("status").size().reset_index(name="count")
             fig_24_status = px.pie(
                 status_24,
                 names="status",
@@ -168,19 +191,17 @@ customer_choice = st.selectbox(
 
 customer_history = df[df["customer"].astype(str) == customer_choice].copy()
 customer_history = customer_history.sort_values("sampledate")
+customer_24 = customer_history[customer_history["month"].isin(last_24_months)].copy()
 
-last_24_months = pd.date_range(end=current_month, periods=24, freq="MS")
-
-customer_24 = (
-    customer_history[customer_history["month"].isin(last_24_months)]
-    .groupby("month")
+customer_24_monthly = (
+    customer_24.groupby("month")
     .size()
     .reset_index(name="samples")
     .sort_values("month")
 )
 
 fig_24 = px.bar(
-    customer_24,
+    customer_24_monthly,
     x="month",
     y="samples",
     title=f"{customer_choice} - samples per month (last 24 months)",
