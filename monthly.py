@@ -83,9 +83,11 @@ if df.empty:
 
 today = pd.Timestamp.today().normalize()
 this_month = today.to_period("M").to_timestamp()
+last_complete_month = (this_month - pd.DateOffset(months=1)).to_period("M").to_timestamp()
 
 month_options = sorted(df["month"].dropna().unique())
-month_options = [m for m in month_options if m >= (this_month - pd.DateOffset(months=12))]
+month_options = [m for m in month_options if m <= last_complete_month]
+
 default_index = len(month_options) - 1 if month_options else 0
 
 report_month = st.sidebar.selectbox(
