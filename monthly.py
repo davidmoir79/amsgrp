@@ -5,10 +5,39 @@ from pathlib import Path
 
 st.set_page_config(page_title="AMS Samples Dashboard", layout="wide")
 
+REQUIRED_COLS = [
+    "customer",
+    "sampno",
+    "sampledate",
+    "registerdate",
+    "site",
+    "machine",
+    "component",
+    "machread",
+    "status",
+]
+
+def clean_columns(df):
+    df.columns = (
+        df.columns.astype(str)
+        .str.strip()
+        .str.lower()
+    )
+    return df
+
 def load_data(file_obj):
     df = pd.read_csv(file_obj)
+    df = clean_columns(df)
+
+    missing = [c for c in REQUIRED_COLS if c not in df.columns]
+    if missing:
+        st.error(f"Missing columns in CSV: {missing}")
+        st.write("Found columns:", list(df.columns))
+        st.stop()
+
     for c in ["sampledate", "registerdate"]:
         df[c] = pd.to_datetime(df[c], errors="coerce")
+
     df["status"] = pd.to_numeric(df["status"], errors="coerce").fillna(0).astype(int)
     df["month"] = df["sampledate"].dt.to_period("M").dt.to_timestamp()
     return df
@@ -16,7 +45,6 @@ def load_data(file_obj):
 st.title("AMS Samples Dashboard")
 
 uploaded_file = st.sidebar.file_uploader("Upload data_ams.csv", type=["csv"])
-
 df = None
 
 if uploaded_file is not None:
@@ -82,40 +110,4 @@ last_month_df = df[df["month"] == max_month].copy()
 table_cols = [
     "customer",
     "sampno",
-    "sampledate",
-    "registerdate",
-    "site",
-    "machine",
-    "component",
-    "machread",
-    "status",
-]
-
-st.dataframe(
-    last_month_df[table_cols],
-    hide_index=True,
-    use_container_width=True,
-)
-
-st.subheader("Status - all sites")
-status_all = (
-    df.groupby("status")
-    .size()
-    .reset_index(name="count")
-)
-
-fig_status_all = px.pie(status_all, names="status", values="count", title="All sites status")
-st.plotly_chart(fig_status_all, use_container_width=True)
-
-st.subheader("Status per site")
-selected_site = st.selectbox("Select site", sorted(df["site"].dropna().unique()))
-
-site_status = (
-    df[df["site"] == selected_site]
-    .groupby("status")
-    .size()
-    .reset_index(name="count")
-)
-
-fig_status_site = px.pie(site_status, names="status", values="count", title=f"Status for {selected_site}")
-st.plotly_chart(fig_status_site, use_container_width=True)
+    
