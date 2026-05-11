@@ -41,11 +41,22 @@ def load_data(file_obj):
 st.title("AMS Samples Dashboard")
 
 uploaded_file = st.sidebar.file_uploader("Upload data_ams.csv", type=["csv"])
-df = None
 
 if uploaded_file is not None:
     df = load_data(uploaded_file)
 else:
     local_file = Path(__file__).parent / "data_ams.csv"
     if local_file.exists():
-        
+        df = load_data(local_file)
+    else:
+        st.error("Please upload data_ams.csv or add it to the app folder.")
+        st.stop()
+
+if df.empty:
+    st.warning("No data found in the CSV.")
+    st.stop()
+
+max_month = df["month"].max()
+months_24 = pd.date_range(end=max_month, periods=24, freq="MS")
+
+monthly_all = 
