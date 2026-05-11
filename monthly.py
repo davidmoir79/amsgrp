@@ -5,6 +5,16 @@ from pathlib import Path
 
 st.set_page_config(page_title="AFRIMAT GROUP OIL SAMPLE DASHBOARD", layout="wide")
 
+st.markdown(
+    """
+    <style>
+    .block-container {padding-top: 1.2rem; padding-bottom: 1rem;}
+    h1, h2, h3 {color: #12304a;}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
 REQUIRED_COLS = [
     "customer",
     "sampno",
@@ -33,6 +43,10 @@ def load_data(file_obj):
     df["month"] = df["sampledate"].dt.to_period("M").dt.to_timestamp()
     df = df.dropna(subset=["sampledate"])
     return df
+
+def label_bars(fig):
+    fig.update_traces(texttemplate="%{y}", textposition="outside")
+    return fig
 
 st.title("AFRIMAT GROUP OIL SAMPLE DASHBOARD")
 
@@ -67,8 +81,8 @@ last_total = len(last_month_df)
 
 st.subheader("Monthly totals")
 c1, c2 = st.columns(2)
-c1.metric("Total Samples for Current Month", current_total)
-c2.metric("Total Samples for Last Month", last_total)
+c1.metric(f"Current Month ({report_month.strftime('%B %Y')})", current_total)
+c2.metric(f"Last Month ({prev_month.strftime('%B %Y')})", last_total)
 
 last_24_months = pd.date_range(end=report_month, periods=24, freq="MS")
 all_24 = df[df["month"].isin(last_24_months)].copy()
@@ -86,34 +100,38 @@ fig_all = px.line(
     x="month",
     y="samples",
     markers=True,
+    text="samples",
     title="All samples - last 24 months",
 )
+fig_all.update_traces(textposition="top center")
 fig_all.update_layout(xaxis_title="Month", yaxis_title="Samples")
 st.plotly_chart(fig_all, use_container_width=True)
 
-st.subheader(f"Last month samples by customer: {report_month.strftime('%B %Y')}")
-last_month_counts = (
+st.subheader(f"Current month samples by customer: {report_month.strftime('%B %Y')}")
+current_counts = (
     current_month_df.groupby("customer")
     .size()
     .reset_index(name="samples")
     .sort_values("samples", ascending=False)
 )
 
-fig_last_month = px.bar(
-    last_month_counts,
+fig_current = px.bar(
+    current_counts,
     x="customer",
     y="samples",
-    title="Last month samples for all customers",
+    text="samples",
+    title=f"Current month samples for all customers ({report_month.strftime('%B %Y')})",
 )
-fig_last_month.update_layout(xaxis_title="Customer", yaxis_title="Samples")
-st.plotly_chart(fig_last_month, use_container_width=True)
+fig_current = label_bars(fig_current)
+fig_current.update_layout(xaxis_title="Customer", yaxis_title="Samples")
+st.plotly_chart(fig_current, use_container_width=True)
 
-st.subheader("Last month data per customer")
+st.subheader("Current month data per customer")
 customer_list = sorted(current_month_df["customer"].dropna().astype(str).unique())
 
 for customer in customer_list:
-    cust_last = current_month_df[current_month_df["customer"].astype(str) == customer].copy()
-    cust_last = cust_last.sort_values("sampledate")
+    cust_current = current_month_df[current_month_df["customer"].astype(str) == customer].copy()
+    cust_current = cust_current.sort_values("sampledate")
 
     cust_24 = all_24[all_24["customer"].astype(str) == customer].copy()
     cust_24 = cust_24.sort_values("sampledate")
@@ -125,11 +143,12 @@ for customer in customer_list:
         .sort_values("month")
     )
 
-    status_current = cust_last.groupby("status").size().reset_index(name="count")
+    status_current = cust_current.groupby("status").size().reset_index(name="count")
     status_24 = cust_24.groupby("status").size().reset_index(name="count")
 
-    with st.expander(customer, expanded=False):
+    with st.expander(f"{customer}  |  Current month samples: {len(cust_current)}", expanded=False):
         st.markdown(f"### {customer}")
+        st.caption(f"Number of samples for the current month ({report_month.strftime('%B %Y')}): {len(cust_current)}")
 
         c1, c2 = st.columns([2, 1])
 
@@ -139,8 +158,10 @@ for customer in customer_list:
                 x="month",
                 y="samples",
                 markers=True,
+                text="samples",
                 title=f"{customer} - samples per month for last 24 months",
             )
+            fig_line.update_traces(textposition="top center")
             fig_line.update_layout(xaxis_title="Month", yaxis_title="Samples")
             st.plotly_chart(fig_line, use_container_width=True)
 
@@ -157,7 +178,7 @@ for customer in customer_list:
 
         with c3:
             st.dataframe(
-                cust_last[
+                cust_current[
                     [
                         "customer",
                         "sampno",
@@ -204,7 +225,9 @@ fig_24 = px.bar(
     customer_24_monthly,
     x="month",
     y="samples",
+    text="samples",
     title=f"{customer_choice} - samples per month (last 24 months)",
 )
+fig_24 = label_bars(fig_24)
 fig_24.update_layout(xaxis_title="Month", yaxis_title="Samples")
 st.plotly_chart(fig_24, use_container_width=True)
