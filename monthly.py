@@ -39,6 +39,7 @@ REQUIRED_COLS = [
 GREY = "#7f7f7f"
 DARK_RED = "#7a0019"
 LIGHT_GREY = "#d9d9d9"
+LIGHT_GREEN = "#90ee90"
 
 def load_data(file_obj):
     df = pd.read_csv(file_obj, sep=";")
@@ -221,7 +222,15 @@ for idx, customer in enumerate(active_customers):
                 names="status",
                 values="count",
                 title=f"{customer} - status current month",
-                color_discrete_sequence=[DARK_RED, GREY, LIGHT_GREY, "#b22222", "#8b8b8b"],
+                color="status",
+                color_discrete_map={
+                    0: LIGHT_GREEN,
+                    1: GREY,
+                    2: DARK_RED,
+                    3: "#b22222",
+                    4: "#5a0010",
+                    5: "#3b3b3b",
+                },
             )
             fig_current_status.update_layout(
                 plot_bgcolor="#ffffff",
@@ -257,7 +266,15 @@ for idx, customer in enumerate(active_customers):
                 names="status",
                 values="count",
                 title=f"{customer} - status last 24 months",
-                color_discrete_sequence=[DARK_RED, GREY, LIGHT_GREY, "#b22222", "#8b8b8b"],
+                color="status",
+                color_discrete_map={
+                    0: LIGHT_GREEN,
+                    1: GREY,
+                    2: DARK_RED,
+                    3: "#b22222",
+                    4: "#5a0010",
+                    5: "#3b3b3b",
+                },
             )
             fig_24_status.update_layout(
                 plot_bgcolor="#ffffff",
