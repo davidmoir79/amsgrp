@@ -56,7 +56,12 @@ def add_bar_labels(fig):
 
 st.title("AFRIMAT GROUP OIL SAMPLE DASHBOARD")
 
-uploaded_file = st.sidebar.file_uploader("Upload data_ams.csv", type=["csv"], label_visibility="collapsed")
+uploaded_file = st.sidebar.file_uploader(
+    "Upload data_ams.csv",
+    type=["csv"],
+    label_visibility="collapsed",
+    key="upload_csv",
+)
 
 if uploaded_file is not None:
     df = load_data(uploaded_file)
@@ -112,7 +117,7 @@ fig_all = px.line(
 )
 fig_all.update_traces(textposition="top center")
 fig_all.update_layout(xaxis_title="Month", yaxis_title="Samples")
-st.plotly_chart(fig_all, use_container_width=True)
+st.plotly_chart(fig_all, use_container_width=True, key="all_24_line")
 
 st.subheader(f"Current month samples by customer: {report_month.strftime('%B %Y')}")
 current_counts = (
@@ -131,10 +136,10 @@ fig_current = px.bar(
 )
 fig_current = add_bar_labels(fig_current)
 fig_current.update_layout(xaxis_title="Customer", yaxis_title="Samples")
-st.plotly_chart(fig_current, use_container_width=True)
+st.plotly_chart(fig_current, use_container_width=True, key="current_customer_bar")
 
 st.subheader("Customers active in the last 12 months")
-for customer in active_customers:
+for idx, customer in enumerate(active_customers):
     cust_current = current_month_df[current_month_df["customer"].astype(str) == customer].copy()
     cust_current = cust_current.sort_values("sampledate")
 
@@ -170,7 +175,7 @@ for customer in active_customers:
             )
             fig_line.update_traces(textposition="top center")
             fig_line.update_layout(xaxis_title="Month", yaxis_title="Samples")
-            st.plotly_chart(fig_line, use_container_width=True)
+            st.plotly_chart(fig_line, use_container_width=True, key=f"cust_line_{idx}")
 
         with c2:
             fig_current_status = px.pie(
@@ -179,7 +184,7 @@ for customer in active_customers:
                 values="count",
                 title=f"{customer} - status current month",
             )
-            st.plotly_chart(fig_current_status, use_container_width=True)
+            st.plotly_chart(fig_current_status, use_container_width=True, key=f"cust_status_current_{idx}")
 
         c3, c4 = st.columns([2, 1])
 
@@ -209,10 +214,10 @@ for customer in active_customers:
                 values="count",
                 title=f"{customer} - status last 24 months",
             )
-            st.plotly_chart(fig_24_status, use_container_width=True)
+            st.plotly_chart(fig_24_status, use_container_width=True, key=f"cust_status_24_{idx}")
 
 st.subheader("Customer month selector")
-customer_choice = st.selectbox("Select customer", active_customers)
+customer_choice = st.selectbox("Select customer", active_customers, key="customer_choice")
 
 customer_history = df[df["customer"].astype(str) == customer_choice].copy()
 customer_history = customer_history.sort_values("sampledate")
@@ -235,4 +240,4 @@ fig_24 = px.line(
 )
 fig_24.update_traces(textposition="top center")
 fig_24.update_layout(xaxis_title="Month", yaxis_title="Samples")
-st.plotly_chart(fig_24, use_container_width=True)
+st.plotly_chart(fig_24, use_container_width=True, key="customer_month_line")
