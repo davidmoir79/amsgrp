@@ -18,11 +18,7 @@ REQUIRED_COLS = [
 ]
 
 def clean_columns(df):
-    df.columns = (
-        df.columns.astype(str)
-        .str.strip()
-        .str.lower()
-    )
+    df.columns = df.columns.astype(str).str.strip().str.lower()
     return df
 
 def load_data(file_obj):
@@ -52,62 +48,4 @@ if uploaded_file is not None:
 else:
     local_file = Path(__file__).parent / "data_ams.csv"
     if local_file.exists():
-        df = load_data(local_file)
-    else:
-        st.error("Please upload data_ams.csv or add it to the app folder.")
-        st.stop()
-
-if df.empty:
-    st.warning("No data found in the CSV.")
-    st.stop()
-
-max_month = df["month"].max()
-months_24 = pd.date_range(end=max_month, periods=24, freq="MS")
-
-monthly_all = (
-    df[df["month"].isin(months_24)]
-    .groupby("month")
-    .size()
-    .reset_index(name="samples")
-)
-
-latest_2 = monthly_all.sort_values("month", ascending=False).head(2).copy()
-latest_2["month_label"] = latest_2["month"].dt.strftime("%b %Y")
-latest_2 = latest_2[["month_label", "samples"]]
-
-st.subheader("Latest months")
-c1, c2 = st.columns([2, 1])
-
-with c1:
-    fig_month = px.line(
-        monthly_all,
-        x="month",
-        y="samples",
-        markers=True,
-        title="Monthly samples for all sites - last 24 months",
-    )
-    fig_month.update_layout(xaxis_title="Month", yaxis_title="Samples")
-    st.plotly_chart(fig_month, use_container_width=True)
-
-with c2:
-    st.dataframe(latest_2, hide_index=True, use_container_width=True)
-
-st.subheader("Samples per site")
-site_counts = (
-    df.groupby("site")
-    .size()
-    .sort_values(ascending=False)
-    .reset_index(name="samples")
-)
-
-fig_site = px.bar(site_counts, x="site", y="samples", title="Number of samples per site")
-fig_site.update_layout(xaxis_title="Site", yaxis_title="Samples")
-st.plotly_chart(fig_site, use_container_width=True)
-
-st.subheader("Last month table")
-last_month_df = df[df["month"] == max_month].copy()
-
-table_cols = [
-    "customer",
-    "sampno",
-    
+        
