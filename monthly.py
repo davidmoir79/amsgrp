@@ -18,7 +18,7 @@ REQUIRED_COLS = [
 ]
 
 def load_data(file_obj):
-    df = pd.read_csv(file_obj)
+    df = pd.read_csv(file_obj, sep=";")
     df.columns = df.columns.astype(str).str.strip().str.lower()
 
     missing = [col for col in REQUIRED_COLS if col not in df.columns]
@@ -64,7 +64,13 @@ st.subheader("Latest months")
 c1, c2 = st.columns([2, 1])
 
 with c1:
-    fig_month = px.line(monthly_all, x="month", y="samples", markers=True, title="Monthly samples for all sites - last 24 months")
+    fig_month = px.line(
+        monthly_all,
+        x="month",
+        y="samples",
+        markers=True,
+        title="Monthly samples for all sites - last 24 months",
+    )
     fig_month.update_layout(xaxis_title="Month", yaxis_title="Samples")
     st.plotly_chart(fig_month, use_container_width=True)
 
@@ -81,7 +87,17 @@ st.plotly_chart(fig_site, use_container_width=True)
 st.subheader("Last month table")
 last_month_df = df[df["month"] == max_month].copy()
 
-table_cols = ["customer", "sampno", "sampledate", "registerdate", "site", "machine", "component", "machread", "status"]
+table_cols = [
+    "customer",
+    "sampno",
+    "sampledate",
+    "registerdate",
+    "site",
+    "machine",
+    "component",
+    "machread",
+    "status",
+]
 
 st.dataframe(last_month_df[table_cols], hide_index=True, use_container_width=True)
 
