@@ -85,58 +85,80 @@ fig_last_month.update_layout(xaxis_title="Customer", yaxis_title="Samples")
 st.plotly_chart(fig_last_month, use_container_width=True)
 
 st.subheader("Last month data per customer")
-for customer in sorted(last_month_df["customer"].dropna().astype(str).unique()):
-    cust_df = last_month_df[last_month_df["customer"].astype(str) == customer].copy()
-    cust_df = cust_df.sort_values("sampledate")
+customer_list = sorted(last_month_df["customer"].dropna().astype(str).unique())
+
+for customer in customer_list:
+    cust_last = last_month_df[last_month_df["customer"].astype(str) == customer].copy()
+    cust_last = cust_last.sort_values("sampledate")
+
+    cust_all_24 = df[df["customer"].astype(str) == customer].copy()
+    cust_all_24 = cust_all_24[cust_all_24["month"].isin(pd.date_range(end=current_month, periods=24, freq="MS"))]
+    cust_monthly_24 = (
+        cust_all_24.groupby("month")
+        .size()
+        .reset_index(name="samples")
+        .sort_values("month")
+    )
+
+    current_status = current_month_df[current_month_df["customer"].astype(str) == customer].copy()
+    last24_status = cust_all_24.copy()
 
     with st.expander(customer, expanded=False):
-        cust_monthly = (
-            cust_df.groupby("month")
-            .size()
-            .reset_index(name="samples")
-            .sort_values("month")
-        )
+        st.markdown(f"### {customer}")
 
         c1, c2 = st.columns([2, 1])
 
         with c1:
-            fig = px.line(
-                cust_monthly,
+            fig_line = px.line(
+                cust_monthly_24,
                 x="month",
                 y="samples",
                 markers=True,
-                title=f"{customer} - sampledate trend",
+                title=f"{customer} - samples per month for last 24 months",
             )
-            fig.update_layout(xaxis_title="Sample month", yaxis_title="Samples")
-            st.plotly_chart(fig, use_container_width=True)
+            fig_line.update_layout(xaxis_title="Month", yaxis_title="Samples")
+            st.plotly_chart(fig_line, use_container_width=True)
 
         with c2:
-            status_counts = cust_df.groupby("status").size().reset_index(name="count")
-            fig_pie = px.pie(
-                status_counts,
+            status_current = current_status.groupby("status").size().reset_index(name="count")
+            fig_current_status = px.pie(
+                status_current,
                 names="status",
                 values="count",
-                title=f"{customer} - status",
+                title=f"{customer} - status current month",
             )
-            st.plotly_chart(fig_pie, use_container_width=True)
+            st.plotly_chart(fig_current_status, use_container_width=True)
 
-        st.dataframe(
-            cust_df[
-                [
-                    "customer",
-                    "sampno",
-                    "sampledate",
-                    "registerdate",
-                    "site",
-                    "machine",
-                    "component",
-                    "machread",
-                    "status",
-                ]
-            ],
-            hide_index=True,
-            use_container_width=True,
-        )
+        c3, c4 = st.columns([2, 1])
+
+        with c3:
+            st.dataframe(
+                cust_last[
+                    [
+                        "customer",
+                        "sampno",
+                        "sampledate",
+                        "registerdate",
+                        "site",
+                        "machine",
+                        "component",
+                        "machread",
+                        "status",
+                    ]
+                ],
+                hide_index=True,
+                use_container_width=True,
+            )
+
+        with c4:
+            status_24 = last24_status.groupby("status").size().reset_index(name="count")
+            fig_24_status = px.pie(
+                status_24,
+                names="status",
+                values="count",
+                title=f"{customer} - status last 24 months",
+            )
+            st.plotly_chart(fig_24_status, use_container_width=True)
 
 st.subheader("Sample per month for last 24 months per customer")
 customer_choice = st.selectbox(
@@ -147,11 +169,7 @@ customer_choice = st.selectbox(
 customer_history = df[df["customer"].astype(str) == customer_choice].copy()
 customer_history = customer_history.sort_values("sampledate")
 
-last_24_months = pd.date_range(
-    end=max(df["month"].max(), current_month),
-    periods=24,
-    freq="MS"
-)
+last_24_months = pd.date_range(end=current_month, periods=24, freq="MS")
 
 customer_24 = (
     customer_history[customer_history["month"].isin(last_24_months)]
